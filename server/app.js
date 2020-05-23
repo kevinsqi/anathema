@@ -2,26 +2,73 @@ const server = require("http").createServer();
 
 const io = require("socket.io")(server);
 
+// Durstenfeld Shuffle
+function shuffleArray(array) {
+  for (let i = array.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [array[i], array[j]] = [array[j], array[i]];
+  }
+}
+
+function createLobbyCode() {
+  const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
+  shuffleArray(letters);
+  return letters.slice(0, 5).join("");
+}
+
+function getUniqueLobbyCode(lobbies) {
+  for (let i = 0; i < 20; i++) {
+    const lobbyCode = createLobbyCode();
+    if (!state.lobbies[lobbyCode]) {
+      return lobbyCode;
+    }
+  }
+  throw new Error("Failed to create unique lobby code");
+}
+
 let state = {
   lobbies: {},
 };
 
-io.on("connection", (client) => {
-  console.log("Client connected:", client.id);
+function createLobby(socket, state) {
+  const lobbyCode = getUniqueLobbyCode(state.lobbies);
+  const lobby = {
+    lobbyCode,
+    players: [socket.id],
+  };
+  state.lobbies[lobbyCode] = lobby;
 
-  client.on("lobby:create", (data, callback) => {
-    console.log("lobby:create", data);
-    const lobbyCode = Math.random().toString();
-    const lobby = {
-      lobbyCode,
-      players: [client.id],
-    };
-    state.lobbies[lobbyCode] = lobby;
+  // Join room for broadcast later
+  socket.join(lobbyCode);
+
+  return lobby;
+}
+
+io.on("connection", (socket) => {
+  console.log("socket connected:", socket.id);
+
+  socket.on("lobby:create", (data, callback) => {
+    console.log("[lobby:create] data", data);
+
+    const lobby = createLobby(socket, state);
+
     callback(lobby);
   });
 
-  client.on("lobby:join", (lobbyCode) => {
-    console.log(`[join] ${client.id} joining lobby ${lobbyCode}`);
+  socket.on("lobby:join", ({ lobbyCode }, callback) => {
+    console.log(`[lobby:join] ${socket.id} joining lobby ${lobbyCode}`);
+
+    const lobby = state.lobbies[lobbyCode];
+    if (!lobby) {
+      callback("NOT_FOUND", null);
+      return;
+    }
+
+    lobby.players.push(socket.id);
+    socket.join(lobbyCode);
+    socket.broadcast.to(lobbyCode).emit("lobby:update", lobby);
+
+    callback(null, state.lobbies[lobbyCode]);
   });
 
   // TODO: disconnect, error handlers
