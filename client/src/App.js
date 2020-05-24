@@ -24,16 +24,7 @@ function App() {
   }
 
   if (lobby) {
-    return (
-      <div>
-        <h1>Anathema - Lobby {lobby.lobbyCode}</h1>
-        <ul>
-          {lobby.players.map((id) => {
-            return <li key={id}>{id}</li>;
-          })}
-        </ul>
-      </div>
-    );
+    return <Lobby lobby={lobby} />;
   }
 
   return (
@@ -52,6 +43,19 @@ function App() {
       </Button>
 
       <JoinLobbyForm socket={socket} setLobby={setLobby} />
+    </div>
+  );
+}
+
+function Lobby({ lobby }) {
+  return (
+    <div>
+      <h1>Anathema - Lobby {lobby.lobbyCode}</h1>
+      <ul>
+        {lobby.players.map((id) => {
+          return <li key={id}>{id}</li>;
+        })}
+      </ul>
     </div>
   );
 }
