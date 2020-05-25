@@ -52,7 +52,7 @@ function Lobby({ lobby }) {
     <div>
       <h1>Anathema - Lobby {lobby.lobbyCode}</h1>
       <ul>
-        {lobby.players.map((id) => {
+        {Object.keys(lobby.players).map((id) => {
           return <li key={id}>{id}</li>;
         })}
       </ul>

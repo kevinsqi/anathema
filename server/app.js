@@ -34,7 +34,9 @@ function createLobby(socket, state) {
   const lobbyCode = getUniqueLobbyCode(state.lobbies);
   const lobby = {
     lobbyCode,
-    players: [socket.id],
+    players: {
+      [socket.id]: true,
+    },
   };
   state.lobbies[lobbyCode] = lobby;
 
@@ -64,11 +66,21 @@ io.on("connection", (socket) => {
       return;
     }
 
-    lobby.players.push(socket.id);
+    lobby.players[socket.id] = true;
     socket.join(lobbyCode);
     socket.broadcast.to(lobbyCode).emit("lobby:update", lobby);
 
     callback(null, state.lobbies[lobbyCode]);
+  });
+
+  socket.on("disconnect", () => {
+    Object.keys(state.lobbies).forEach((lobbyCode) => {
+      const lobby = state.lobbies[lobbyCode];
+      if (lobby.players[socket.id]) {
+        lobby.players[socket.id] = false;
+        socket.broadcast.to(lobbyCode).emit("lobby:update", lobby);
+      }
+    });
   });
 
   // TODO: disconnect, error handlers
