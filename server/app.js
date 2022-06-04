@@ -53,6 +53,7 @@ function createRound(lobbyCode, state) {
 
   lobby.game.rounds.push({
     word: "heebyjeebies",
+    activePlayerId: Object.keys(lobby.players)[0],
     guesses: [],
   });
 }
@@ -67,9 +68,6 @@ function createLobby(socket, state) {
   };
   state.lobbies[lobbyCode] = lobby;
 
-  // Join room for broadcast later
-  socket.join(lobbyCode);
-
   return lobby;
 }
 
@@ -82,8 +80,12 @@ io.on("connection", (socket) => {
     console.log("[lobby:create] data", data);
 
     const lobby = createLobby(socket, state);
+    const playerId = socket.id;
 
-    callback(lobby);
+    // Join room for broadcast later
+    socket.join(lobby.lobbyCode);
+
+    callback(null, { lobby, playerId });
   });
 
   socket.on("lobby:join", ({ lobbyCode }, callback) => {
@@ -104,7 +106,7 @@ io.on("connection", (socket) => {
     socket.join(lobbyCode);
     io.in(lobbyCode).emit("lobby:update", lobby);
 
-    callback(null, state.lobbies[lobbyCode]);
+    callback(null, { lobby: state.lobbies[lobbyCode], playerId });
   });
 
   socket.on("game:start", ({ lobbyCode }, callback) => {

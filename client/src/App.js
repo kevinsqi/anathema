@@ -6,6 +6,7 @@ import io from "socket.io-client";
 function App() {
   const [socket, setSocket] = React.useState(null);
   const [lobby, setLobby] = React.useState(null);
+  const [playerId, setPlayerId] = React.useState(null);
 
   React.useEffect(() => {
     const newSocket = io.connect("http://localhost:3001");
@@ -24,7 +25,7 @@ function App() {
   }
 
   if (lobby) {
-    return <Lobby socket={socket} lobby={lobby} />;
+    return <Lobby socket={socket} lobby={lobby} playerId={playerId} />;
   }
 
   return (
@@ -33,67 +34,102 @@ function App() {
       <Button
         variant="primary"
         onClick={() => {
-          socket.emit("lobby:create", {}, (result) => {
+          socket.emit("lobby:create", {}, (err, result) => {
             console.log("lobby:create", result);
-            setLobby(result);
+            if (err) {
+              console.error(err);
+              return;
+            }
+
+            setLobby(result.lobby);
+            setPlayerId(result.playerId);
           });
         }}
       >
         Create lobby
       </Button>
 
-      <JoinLobbyForm socket={socket} setLobby={setLobby} />
+      <JoinLobbyForm
+        socket={socket}
+        setLobby={setLobby}
+        setPlayerId={setPlayerId}
+      />
     </div>
   );
 }
 
-function Lobby({ lobby, socket }) {
+function Lobby({ lobby, playerId, socket }) {
+  if (!lobby.game) {
+    return (
+      <div>
+        <h1>Anathema - Lobby {lobby.lobbyCode}</h1>
+        {!lobby.game && (
+          <ul>
+            {Object.keys(lobby.players).map((playerId) => {
+              return <li key={playerId}>{playerId}</li>;
+            })}
+          </ul>
+        )}
+
+        <Button
+          variant="primary"
+          onClick={() => {
+            socket.emit(
+              "game:start",
+              { lobbyCode: lobby.lobbyCode },
+              (err, result) => {
+                console.log("game:start", result);
+                if (err) {
+                  console.error(err);
+                  return;
+                }
+              }
+            );
+          }}
+        >
+          Start new game
+        </Button>
+      </div>
+    );
+  }
+
+  const currentRound = lobby.game.rounds[lobby.game.rounds.length - 1];
+  const currentActivePlayerId = currentRound.activePlayerId;
+  const isActivePlayer = playerId === currentActivePlayerId;
+  console.log("isActive", isActivePlayer, playerId, currentActivePlayerId);
   return (
     <div>
       <h1>Anathema - Lobby {lobby.lobbyCode}</h1>
-      <ul>
-        {Object.keys(lobby.players).map((playerId) => {
-          return <li key={playerId}>{playerId}</li>;
-        })}
-      </ul>
-
-      {lobby.game && (
+      <div>
         <ul>
-          {Object.keys(lobby.game.scores).map((playerId) => {
+          {Object.keys(lobby.game.scores).map((otherPlayerId) => {
             return (
-              <li key={playerId}>
-                {playerId}: {lobby.game.scores[playerId]}
+              <li
+                key={otherPlayerId}
+                className={
+                  otherPlayerId === currentActivePlayerId
+                    ? "font-weight-bold"
+                    : null
+                }
+              >
+                {otherPlayerId}: {lobby.game.scores[otherPlayerId]}
               </li>
             );
           })}
         </ul>
-      )}
-
-      <Button
-        variant="primary"
-        onClick={() => {
-          socket.emit(
-            "game:start",
-            { lobbyCode: lobby.lobbyCode },
-            (err, result) => {
-              console.log("game:start", result);
-              if (err) {
-                console.error(err);
-                return;
-              }
-            }
-          );
-        }}
-      >
-        Start new game
-      </Button>
+        <div>
+          {isActivePlayer
+            ? `Describe word: ${currentRound.word}`
+            : `Player ${currentActivePlayerId} is up`}
+        </div>
+      </div>
     </div>
   );
 }
 
 // TODO: allow picking a nickname after joining - then you can rejoin with nickname instead
 // of session id
-function JoinLobbyForm({ socket, setLobby }) {
+function JoinLobbyForm({ socket, setLobby, setPlayerId }) {
   const [lobbyCode, setLobbyCode] = React.useState("");
   const [errorMessage, setErrorMessage] = React.useState(null);
   return (
@@ -115,7 +151,8 @@ function JoinLobbyForm({ socket, setLobby }) {
               }
               return;
             }
-            setLobby(result);
+            setLobby(result.lobby);
+            setPlayerId(result.playerId);
           });
         }}
       >
