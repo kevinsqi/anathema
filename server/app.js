@@ -1,6 +1,10 @@
 const server = require("http").createServer();
-
 const io = require("socket.io")(server);
+const _ = require("lodash");
+const fs = require("fs");
+
+const wordListStr = fs.readFileSync("./data/freevocabulary_words.json");
+const wordList = JSON.parse(wordListStr);
 
 // Durstenfeld Shuffle
 function shuffleArray(array) {
@@ -31,9 +35,7 @@ let state = {
   lobbies: {},
 };
 
-function createGame(state, lobbyCode) {
-  lobby = state.lobbies[lobbyCode];
-
+function createGame(lobby) {
   lobby.game = {
     scores: Object.keys(lobby.players).reduce((obj, playerId) => {
       obj[playerId] = 0;
@@ -44,19 +46,36 @@ function createGame(state, lobbyCode) {
 
   const firstActivePlayerId = Object.keys(lobby.players)[0];
   // TODO: setInterval
-  createRound(state, lobbyCode, firstActivePlayerId);
+  createRound(lobby, firstActivePlayerId);
 
   return lobby;
 }
 
-function createRound(state, lobbyCode, activePlayerId) {
-  lobby = state.lobbies[lobbyCode];
+function createRound(lobby, activePlayerId) {
+  const wordItem = _.sample(wordList);
 
   lobby.game.rounds.push({
-    word: "heebyjeebies",
+    word: wordItem.word,
     activePlayerId,
     guesses: [],
   });
+}
+
+function makeGuess(lobby, playerId, guessValue) {
+  const currentRound = lobby.game.rounds[lobby.game.rounds.length - 1];
+
+  if (playerId === currentRound.activePlayerId) {
+    console.error("INVALID_GUESS_ACTIVE_PLAYER_CANNOT_GUESS");
+    return false;
+  }
+
+  if (guessValue === currentRound.word) {
+    lobby.game.scores[playerId] += 1;
+    createRound(lobby, playerId);
+    return true;
+  }
+
+  return false;
 }
 
 function createLobby(socket, state) {
@@ -113,12 +132,24 @@ io.on("connection", (socket) => {
   socket.on("game:start", ({ lobbyCode }, callback) => {
     console.log(`[game:start] Lobby ${lobbyCode}`);
 
-    createGame(state, lobbyCode);
-
     const lobby = state.lobbies[lobbyCode];
+    createGame(lobby);
+
     io.in(lobbyCode).emit("lobby:update", lobby);
 
     callback(null, null);
+  });
+
+  socket.on("game:make_guess", (params, callback) => {
+    console.log(`[game:make_guess] Params ${params}`);
+    const { lobbyCode, guessValue, playerId } = params;
+
+    const lobby = state.lobbies[lobbyCode];
+    const isCorrect = makeGuess(lobby, playerId, guessValue);
+
+    io.in(lobbyCode).emit("lobby:update", lobby);
+
+    callback(null, { isCorrect });
   });
 
   socket.on("disconnect", () => {

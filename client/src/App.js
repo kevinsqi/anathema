@@ -96,7 +96,6 @@ function Lobby({ lobby, playerId, socket }) {
   const currentRound = lobby.game.rounds[lobby.game.rounds.length - 1];
   const currentActivePlayerId = currentRound.activePlayerId;
   const isActivePlayer = playerId === currentActivePlayerId;
-  console.log("isActive", isActivePlayer, playerId, currentActivePlayerId);
   return (
     <div>
       <h1>Anathema - Lobby {lobby.lobbyCode}</h1>
@@ -107,22 +106,61 @@ function Lobby({ lobby, playerId, socket }) {
               <li
                 key={otherPlayerId}
                 className={
-                  otherPlayerId === currentActivePlayerId
-                    ? "font-weight-bold"
-                    : null
+                  otherPlayerId === playerId ? "font-weight-bold" : null
                 }
               >
-                {otherPlayerId}: {lobby.game.scores[otherPlayerId]}
+                {otherPlayerId}
+                {otherPlayerId === playerId ? " (this is you)" : ""}:{" "}
+                {lobby.game.scores[otherPlayerId]}
               </li>
             );
           })}
         </ul>
         <div>
-          {isActivePlayer
-            ? `Describe word: ${currentRound.word}`
-            : `Player ${currentActivePlayerId} is up`}
+          {isActivePlayer ? (
+            `Describe word: ${currentRound.word}`
+          ) : (
+            <GuessWordForm socket={socket} lobby={lobby} playerId={playerId} />
+          )}
         </div>
       </div>
+    </div>
+  );
+}
+
+function GuessWordForm({ socket, lobby, playerId }) {
+  const currentRound = lobby.game.rounds[lobby.game.rounds.length - 1];
+  const currentActivePlayerId = currentRound.activePlayerId;
+
+  const [guessValue, setGuessValue] = React.useState("");
+
+  return (
+    <div>
+      <p>Guess what word player {currentActivePlayerId} is describing</p>
+      <input
+        type="text"
+        value={guessValue}
+        onChange={(event) => setGuessValue(event.target.value)}
+      />
+      <Button
+        variant="primary"
+        onClick={() => {
+          socket.emit(
+            "game:make_guess",
+            // TODO: pass a round id as well
+            { lobbyCode: lobby.lobbyCode, guessValue, playerId },
+            (err, result) => {
+              console.log("game:make_guess", result);
+              if (err) {
+                console.error(err);
+                return;
+              }
+            }
+          );
+        }}
+      >
+        Guess
+      </Button>
     </div>
   );
 }
