@@ -31,7 +31,7 @@ let state = {
   lobbies: {},
 };
 
-function createGame(lobbyCode, state) {
+function createGame(state, lobbyCode) {
   lobby = state.lobbies[lobbyCode];
 
   lobby.game = {
@@ -42,18 +42,19 @@ function createGame(lobbyCode, state) {
     rounds: [],
   };
 
+  const firstActivePlayerId = Object.keys(lobby.players)[0];
   // TODO: setInterval
-  createRound(lobbyCode, state);
+  createRound(state, lobbyCode, firstActivePlayerId);
 
   return lobby;
 }
 
-function createRound(lobbyCode, state) {
+function createRound(state, lobbyCode, activePlayerId) {
   lobby = state.lobbies[lobbyCode];
 
   lobby.game.rounds.push({
     word: "heebyjeebies",
-    activePlayerId: Object.keys(lobby.players)[0],
+    activePlayerId,
     guesses: [],
   });
 }
@@ -112,7 +113,7 @@ io.on("connection", (socket) => {
   socket.on("game:start", ({ lobbyCode }, callback) => {
     console.log(`[game:start] Lobby ${lobbyCode}`);
 
-    createGame(lobbyCode, state);
+    createGame(state, lobbyCode);
 
     const lobby = state.lobbies[lobbyCode];
     io.in(lobbyCode).emit("lobby:update", lobby);
