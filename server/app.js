@@ -68,8 +68,15 @@ function makeGuess(lobby, playerId, guessValue) {
     console.error("INVALID_GUESS_ACTIVE_PLAYER_CANNOT_GUESS");
     return false;
   }
+  const isCorrect = guessValue === currentRound.word;
 
-  if (guessValue === currentRound.word) {
+  currentRound.guesses.push({
+    playerId,
+    guessValue,
+    isCorrect,
+  });
+
+  if (isCorrect) {
     lobby.game.scores[playerId] += 1;
     createRound(lobby, playerId);
     return true;
@@ -149,7 +156,7 @@ io.on("connection", (socket) => {
 
     io.in(lobbyCode).emit("lobby:update", lobby);
 
-    callback(null, { isCorrect });
+    callback(null, { isCorrect, guessValue });
   });
 
   socket.on("disconnect", () => {

@@ -133,6 +133,7 @@ function GuessWordForm({ socket, lobby, playerId }) {
   const currentActivePlayerId = currentRound.activePlayerId;
 
   const [guessValue, setGuessValue] = React.useState("");
+  const [wrongGuessMessage, setWrongGuessMessage] = React.useState("");
 
   return (
     <div>
@@ -155,12 +156,18 @@ function GuessWordForm({ socket, lobby, playerId }) {
                 console.error(err);
                 return;
               }
+
+              if (!result.isCorrect) {
+                setWrongGuessMessage(`"${result.guessValue}" was not correct`);
+                setGuessValue("");
+              }
             }
           );
         }}
       >
         Guess
       </Button>
+      {wrongGuessMessage !== "" && <div>{wrongGuessMessage}</div>}
     </div>
   );
 }
