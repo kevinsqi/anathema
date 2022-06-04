@@ -26,6 +26,7 @@ function getUniqueLobbyCode(lobbies) {
   throw new Error("Failed to create unique lobby code");
 }
 
+// TODO: persist state in some key value store
 let state = {
   lobbies: {},
 };

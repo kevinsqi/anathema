@@ -62,6 +62,7 @@ function Lobby({ lobby }) {
 
 function JoinLobbyForm({ socket, setLobby }) {
   const [lobbyCode, setLobbyCode] = React.useState("");
+  const [errorMessage, setErrorMessage] = React.useState(null);
   return (
     <div>
       <input
@@ -77,6 +78,10 @@ function JoinLobbyForm({ socket, setLobby }) {
             if (err) {
               // TODO: display error
               console.error(err);
+
+              if (err === "NOT_FOUND") {
+                setErrorMessage("Lobby not found");
+              }
               return;
             }
             setLobby(result);
@@ -85,6 +90,7 @@ function JoinLobbyForm({ socket, setLobby }) {
       >
         Join lobby
       </Button>
+      {errorMessage && <div>{errorMessage}</div>}
     </div>
   );
 }
