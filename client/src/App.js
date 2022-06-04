@@ -24,7 +24,7 @@ function App() {
   }
 
   if (lobby) {
-    return <Lobby lobby={lobby} />;
+    return <Lobby socket={socket} lobby={lobby} />;
   }
 
   return (
@@ -47,19 +47,52 @@ function App() {
   );
 }
 
-function Lobby({ lobby }) {
+function Lobby({ lobby, socket }) {
   return (
     <div>
       <h1>Anathema - Lobby {lobby.lobbyCode}</h1>
       <ul>
-        {Object.keys(lobby.players).map((id) => {
-          return <li key={id}>{id}</li>;
+        {Object.keys(lobby.players).map((playerId) => {
+          return <li key={playerId}>{playerId}</li>;
         })}
       </ul>
+
+      {lobby.game && (
+        <ul>
+          {Object.keys(lobby.game.scores).map((playerId) => {
+            return (
+              <li key={playerId}>
+                {playerId}: {lobby.game.scores[playerId]}
+              </li>
+            );
+          })}
+        </ul>
+      )}
+
+      <Button
+        variant="primary"
+        onClick={() => {
+          socket.emit(
+            "game:start",
+            { lobbyCode: lobby.lobbyCode },
+            (err, result) => {
+              console.log("game:start", result);
+              if (err) {
+                console.error(err);
+                return;
+              }
+            }
+          );
+        }}
+      >
+        Start new game
+      </Button>
     </div>
   );
 }
 
+// TODO: allow picking a nickname after joining - then you can rejoin with nickname instead
+// of session id
 function JoinLobbyForm({ socket, setLobby }) {
   const [lobbyCode, setLobbyCode] = React.useState("");
   const [errorMessage, setErrorMessage] = React.useState(null);
@@ -76,9 +109,7 @@ function JoinLobbyForm({ socket, setLobby }) {
           socket.emit("lobby:join", { lobbyCode }, (err, result) => {
             console.log("lobby:join", result);
             if (err) {
-              // TODO: display error
               console.error(err);
-
               if (err === "NOT_FOUND") {
                 setErrorMessage("Lobby not found");
               }

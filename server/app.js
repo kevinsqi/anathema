@@ -31,6 +31,32 @@ let state = {
   lobbies: {},
 };
 
+function createGame(lobbyCode, state) {
+  lobby = state.lobbies[lobbyCode];
+
+  lobby.game = {
+    scores: Object.keys(lobby.players).reduce((obj, playerId) => {
+      obj[playerId] = 0;
+      return obj;
+    }, {}),
+    rounds: [],
+  };
+
+  // TODO: setInterval
+  createRound(lobbyCode, state);
+
+  return lobby;
+}
+
+function createRound(lobbyCode, state) {
+  lobby = state.lobbies[lobbyCode];
+
+  lobby.game.rounds.push({
+    word: "heebyjeebies",
+    guesses: [],
+  });
+}
+
 function createLobby(socket, state) {
   const lobbyCode = getUniqueLobbyCode(state.lobbies);
   const lobby = {
@@ -47,6 +73,8 @@ function createLobby(socket, state) {
   return lobby;
 }
 
+// Note which emits skip the sender
+// https://socket.io/docs/v3/emit-cheatsheet/
 io.on("connection", (socket) => {
   console.log("socket connected:", socket.id);
 
@@ -67,11 +95,27 @@ io.on("connection", (socket) => {
       return;
     }
 
-    lobby.players[socket.id] = true;
+    const playerId = socket.id;
+    lobby.players[playerId] = true;
+    if (lobby.game) {
+      lobby.game.scores[playerId] = 0;
+    }
+
     socket.join(lobbyCode);
-    socket.broadcast.to(lobbyCode).emit("lobby:update", lobby);
+    io.in(lobbyCode).emit("lobby:update", lobby);
 
     callback(null, state.lobbies[lobbyCode]);
+  });
+
+  socket.on("game:start", ({ lobbyCode }, callback) => {
+    console.log(`[game:start] Lobby ${lobbyCode}`);
+
+    createGame(lobbyCode, state);
+
+    const lobby = state.lobbies[lobbyCode];
+    io.in(lobbyCode).emit("lobby:update", lobby);
+
+    callback(null, null);
   });
 
   socket.on("disconnect", () => {
@@ -79,7 +123,7 @@ io.on("connection", (socket) => {
       const lobby = state.lobbies[lobbyCode];
       if (lobby.players[socket.id]) {
         lobby.players[socket.id] = false;
-        socket.broadcast.to(lobbyCode).emit("lobby:update", lobby);
+        io.in(lobbyCode).emit("lobby:update", lobby);
       }
     });
   });
