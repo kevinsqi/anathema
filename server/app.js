@@ -44,11 +44,11 @@ let state = {
 };
 
 function createGame(io, lobby, gameDurationSeconds) {
-  const timeoutId = setTimeout(() => {
-    endGame(io, lobby);
-  }, gameDurationSeconds * 1000);
-
   const timerIntervalId = setInterval(() => {
+    if (!lobby.game) {
+      console.warning("UPDATE_TIMER_NO_GAME");
+      return;
+    }
     const timeElapsed = Math.round(
       new Date().getTime() / 1000 - lobby.game.gameStartSeconds
     );
@@ -58,6 +58,10 @@ function createGame(io, lobby, gameDurationSeconds) {
       timeRemainingSeconds: gameDurationSeconds - timeElapsed,
     });
   }, 1000);
+  const timeoutId = setTimeout(() => {
+    endGame(io, lobby);
+    clearInterval(timerIntervalId);
+  }, gameDurationSeconds * 1000);
 
   lobby.game = {
     scores: Object.keys(lobby.players).reduce((obj, playerId) => {
@@ -77,6 +81,7 @@ function createGame(io, lobby, gameDurationSeconds) {
 
 function endGame(io, lobby) {
   console.log("[endGame]", lobby);
+
   // TODO: persist game
   lobby.game = null;
 
