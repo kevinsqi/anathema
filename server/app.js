@@ -1,5 +1,11 @@
 const server = require("http").createServer();
-const io = require("socket.io")(server);
+const io = require("socket.io")(server, {
+  cors: {
+    origin: "http://localhost:3000", // TODO: need to change for prod deploy?
+    methods: ["GET", "POST"],
+  },
+});
+
 const _ = require("lodash");
 const fs = require("fs");
 
