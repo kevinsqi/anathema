@@ -7,9 +7,9 @@ const io = require("socket.io")(server, {
     methods: ["GET", "POST"],
   },
 });
-
 const _ = require("lodash");
 const fs = require("fs");
+const { v4: uuidv4 } = require("uuid");
 
 const wordListStr = fs.readFileSync("./data/freevocabulary_words.json");
 const wordList = JSON.parse(wordListStr);
@@ -44,26 +44,44 @@ let state = {
 };
 
 function createGame(io, lobby, gameDurationSeconds) {
+  const gameId = uuidv4();
+  io.in(lobby.lobbyCode).emit("game:update_timer", {
+    timeRemainingSeconds: gameDurationSeconds,
+  });
   const timerIntervalId = setInterval(() => {
-    if (!lobby.game) {
-      console.warning("UPDATE_TIMER_NO_GAME");
+    const currentTimeSeconds = new Date().getTime() / 1000;
+
+    // If game has expired or ended, clear timer
+    const isGameEnded = !lobby.game || lobby.game.gameId !== gameId;
+    if (isGameEnded) {
+      clearInterval(timerIntervalId);
       return;
     }
     const timeElapsed = Math.round(
-      new Date().getTime() / 1000 - lobby.game.gameStartSeconds
+      currentTimeSeconds - lobby.game.gameStartSeconds
     );
+    const isGameTimedOut = timeElapsed && timeElapsed > gameDurationSeconds;
+    if (isGameTimedOut) {
+      clearInterval(timerIntervalId);
+      return;
+    }
 
-    console.log("[game:update_timer]", timeElapsed);
     io.in(lobby.lobbyCode).emit("game:update_timer", {
       timeRemainingSeconds: gameDurationSeconds - timeElapsed,
     });
   }, 1000);
+
   const timeoutId = setTimeout(() => {
+    // If the game has already ended, do a no-op
+    if (!lobby.game || lobby.game.gameId !== gameId) {
+      return;
+    }
     endGame(io, lobby);
     clearInterval(timerIntervalId);
   }, gameDurationSeconds * 1000);
 
   lobby.game = {
+    gameId,
     scores: Object.keys(lobby.players).reduce((obj, playerId) => {
       obj[playerId] = 0;
       return obj;
