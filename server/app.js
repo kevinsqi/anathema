@@ -43,7 +43,7 @@ let state = {
   lobbies: {},
 };
 
-function createGame(io, lobby, gameDurationSeconds) {
+function createGame(io, lobby, { gameDurationSeconds, gameWinningScore }) {
   const gameId = uuidv4();
   io.in(lobby.lobbyCode).emit("game:update_timer", {
     timeRemainingSeconds: gameDurationSeconds,
@@ -82,12 +82,13 @@ function createGame(io, lobby, gameDurationSeconds) {
 
   lobby.game = {
     gameId,
+    gameStartSeconds: new Date().getTime() / 1000,
+    gameWinningScore,
     scores: Object.keys(lobby.players).reduce((obj, playerId) => {
       obj[playerId] = 0;
       return obj;
     }, {}),
     rounds: [],
-    gameStartSeconds: new Date().getTime() / 1000,
   };
 
   const firstActivePlayerId = Object.keys(lobby.players)[0];
@@ -154,6 +155,15 @@ function createLobby(socket, state) {
   return lobby;
 }
 
+function isGameComplete(lobby) {
+  if (!lobby.game) {
+    return true;
+  }
+
+  const maxScore = Math.max(...Object.values(lobby.game.scores));
+  return maxScore >= lobby.game.gameWinningScore;
+}
+
 // Note which emits skip the sender
 // https://socket.io/docs/v3/emit-cheatsheet/
 io.on("connection", (socket) => {
@@ -197,7 +207,8 @@ io.on("connection", (socket) => {
 
     const lobby = state.lobbies[lobbyCode];
     const gameDurationSeconds = 60 * 5;
-    createGame(io, lobby, gameDurationSeconds);
+    const gameWinningScore = 1;
+    createGame(io, lobby, { gameDurationSeconds, gameWinningScore });
 
     io.in(lobbyCode).emit("lobby:update", lobby);
 
@@ -205,11 +216,16 @@ io.on("connection", (socket) => {
   });
 
   socket.on("game:make_guess", (params, callback) => {
-    console.log(`[game:make_guess] Params ${params}`);
+    console.log("[game:make_guess] Called", params);
     const { lobbyCode, guessValue, playerId } = params;
 
     const lobby = state.lobbies[lobbyCode];
     const isCorrect = makeGuess(lobby, playerId, guessValue);
+
+    if (isGameComplete(lobby)) {
+      console.log("[game:make_guess] Game complete via guessing");
+      endGame(io, lobby);
+    }
 
     io.in(lobbyCode).emit("lobby:update", lobby);
 
