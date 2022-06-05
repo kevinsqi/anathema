@@ -1,5 +1,13 @@
+// TODO: fix hella race conditions
+
 const server = require("http").createServer();
-const io = require("socket.io")(server);
+const io = require("socket.io")(server, {
+  cors: {
+    origin: "http://localhost:3000", // TODO: need to change for prod deploy?
+    methods: ["GET", "POST"],
+  },
+});
+
 const _ = require("lodash");
 const fs = require("fs");
 
@@ -35,13 +43,33 @@ let state = {
   lobbies: {},
 };
 
-function createGame(lobby) {
+function createGame(io, lobby, gameDurationSeconds) {
+  const timerIntervalId = setInterval(() => {
+    if (!lobby.game) {
+      console.warning("UPDATE_TIMER_NO_GAME");
+      return;
+    }
+    const timeElapsed = Math.round(
+      new Date().getTime() / 1000 - lobby.game.gameStartSeconds
+    );
+
+    console.log("[game:update_timer]", timeElapsed);
+    io.in(lobby.lobbyCode).emit("game:update_timer", {
+      timeRemainingSeconds: gameDurationSeconds - timeElapsed,
+    });
+  }, 1000);
+  const timeoutId = setTimeout(() => {
+    endGame(io, lobby);
+    clearInterval(timerIntervalId);
+  }, gameDurationSeconds * 1000);
+
   lobby.game = {
     scores: Object.keys(lobby.players).reduce((obj, playerId) => {
       obj[playerId] = 0;
       return obj;
     }, {}),
     rounds: [],
+    gameStartSeconds: new Date().getTime() / 1000,
   };
 
   const firstActivePlayerId = Object.keys(lobby.players)[0];
@@ -49,6 +77,16 @@ function createGame(lobby) {
   createRound(lobby, firstActivePlayerId);
 
   return lobby;
+}
+
+function endGame(io, lobby) {
+  console.log("[endGame]", lobby);
+
+  // TODO: persist game
+  lobby.game = null;
+
+  // TODO: cancel interval, cancel timeout
+  io.in(lobby.lobbyCode).emit("lobby:update", lobby);
 }
 
 function createRound(lobby, activePlayerId) {
@@ -140,7 +178,8 @@ io.on("connection", (socket) => {
     console.log(`[game:start] Lobby ${lobbyCode}`);
 
     const lobby = state.lobbies[lobbyCode];
-    createGame(lobby);
+    const gameDurationSeconds = 60 * 5;
+    createGame(io, lobby, gameDurationSeconds);
 
     io.in(lobbyCode).emit("lobby:update", lobby);
 
