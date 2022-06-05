@@ -7,6 +7,10 @@ function App() {
   const [socket, setSocket] = React.useState(null);
   const [lobby, setLobby] = React.useState(null);
   const [playerId, setPlayerId] = React.useState(null);
+  const [
+    gameTimeRemainingSeconds,
+    setGameTimeRemainingSeconds,
+  ] = React.useState(null);
 
   React.useEffect(() => {
     const newSocket = io.connect("http://localhost:3001");
@@ -17,6 +21,12 @@ function App() {
       setLobby(result);
     });
 
+    newSocket.on("game:update_timer", (result) => {
+      console.log("game:update_timer", result);
+
+      setGameTimeRemainingSeconds(result.timeRemainingSeconds);
+    });
+
     // TODO: close socket on unmount
   }, []);
 
@@ -25,7 +35,14 @@ function App() {
   }
 
   if (lobby) {
-    return <Lobby socket={socket} lobby={lobby} playerId={playerId} />;
+    return (
+      <Lobby
+        socket={socket}
+        lobby={lobby}
+        playerId={playerId}
+        timeRemainingSeconds={gameTimeRemainingSeconds}
+      />
+    );
   }
 
   return (
@@ -58,7 +75,7 @@ function App() {
   );
 }
 
-function Lobby({ lobby, playerId, socket }) {
+function Lobby({ lobby, playerId, socket, timeRemainingSeconds }) {
   if (!lobby.game) {
     return (
       <div>
@@ -116,6 +133,9 @@ function Lobby({ lobby, playerId, socket }) {
             );
           })}
         </ul>
+        {timeRemainingSeconds != null && (
+          <div>Time left: {timeRemainingSeconds}</div>
+        )}
         <div>
           {isActivePlayer ? (
             `Describe word: ${currentRound.word}`
