@@ -10,7 +10,9 @@ const io = require("socket.io")(server, {
 const _ = require("lodash");
 const fs = require("fs");
 const { v4: uuidv4 } = require("uuid");
+const MongoClient = require("mongodb").MongoClient;
 
+// Load word list
 const wordListStr = fs.readFileSync("./data/freevocabulary_words.json");
 const wordList = JSON.parse(wordListStr);
 
@@ -166,8 +168,14 @@ function isGameComplete(lobby) {
 
 // Note which emits skip the sender
 // https://socket.io/docs/v3/emit-cheatsheet/
-io.on("connection", (socket) => {
+io.on("connection", async (socket) => {
   console.log("socket connected:", socket.id);
+
+  // Init mongo connection
+  console.log("conn str", process.env.MONGODB_URL);
+  const db = await MongoClient.connect(process.env.MONGODB_URL);
+  const lobbyCollection = db.collection("lobbies");
+  console.log("mongo", db, lobbyCollection);
 
   socket.on("lobby:create", (data, callback) => {
     console.log("[lobby:create] data", data);
