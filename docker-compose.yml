@@ -1,0 +1,29 @@
+version: '3'
+services:
+  server:
+    build: ./server
+    depends_on:
+      - mongodb
+    environment:
+      - MONGODB_URL=mongodb://anathema-admin:anathema-admin-password@127.0.0.1:27017/anathema
+      - NODE_ENV=development
+      - PORT=3001
+    expose:
+      - 3001
+    ports:
+      - "3001:3001"
+    volumes:
+      - ./server:/usr/server
+      # Don't sync node_modules from host
+      - /usr/server/node_modules
+  mongodb:
+    image: 'mongo'
+    environment:
+      - MONGO_INITDB_DATABASE=anathema
+      - MONGO_INITDB_ROOT_USERNAME=anathema-admin
+      - MONGO_INITDB_ROOT_PASSWORD=anathema-admin-password
+    volumes:
+      - ./mongodb/init-mongo.js:/docker-entrypoint-initdb.d/init-mongo-js:ro
+      - ./mongo-volume:/data/db
+    ports:
+      - '27017-27019:27017-27019'
