@@ -245,6 +245,7 @@ io.on("connection", (socket) => {
   // TODO: disconnect, error handlers
 });
 
+// TODO: use env var PORT
 const port = 3001;
 
 server.listen(port, (error) => {
