@@ -23,7 +23,9 @@ services:
       - MONGO_INITDB_ROOT_USERNAME=anathema-admin
       - MONGO_INITDB_ROOT_PASSWORD=anathema-admin-password
     volumes:
-      - ./mongodb/init-mongo.js:/docker-entrypoint-initdb.d/init-mongo-js:ro
-      - ./mongo-volume:/data/db
+      - mongodb:/data/db
     ports:
-      - '27017-27019:27017-27019'
+      - '27017:27017'
+
+volumes:
+  mongodb:
