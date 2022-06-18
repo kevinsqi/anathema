@@ -1,14 +1,3 @@
-FROM node:16-alpine
+FROM nginx:stable-alpine
 
-WORKDIR /usr/client
-
-# Install dependencies
-COPY package.json .
-COPY yarn.lock .
-RUN yarn install
-
-# Copy app source code into docker image
-COPY . .
-
-EXPOSE 3000
-CMD ["yarn", "start"]
+COPY build/ /usr/share/nginx/html
