@@ -13,7 +13,7 @@ function App() {
   ] = React.useState(null);
 
   React.useEffect(() => {
-    const newSocket = io.connect("http://localhost:3001");
+    const newSocket = io.connect("http://backend");
     setSocket(newSocket);
 
     newSocket.on("lobby:update", (result) => {

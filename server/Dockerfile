@@ -10,6 +10,6 @@ RUN yarn install
 # Copy app source code into docker image
 COPY . .
 
-EXPOSE 3000
+EXPOSE 3001
 
 CMD ["yarn", "start"]
