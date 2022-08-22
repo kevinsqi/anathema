@@ -1,33 +1,36 @@
-apiVersion: apps/v1
 kind: Deployment
+apiVersion: apps/v1
 metadata:
-  name: anathema-client-deploy
+  name: anathema-client
 spec:
   replicas: 1
   selector:
     matchLabels:
-      name: anathema-client
+      app: anathema-client
   template:
     metadata:
       labels:
-        name: anathema-client
+        app: anathema-client
     spec:
       containers:
       - name: anathema-client
-        image: docker.io/kevinsqi/anathema-client:0.1.1
-        imagePullPolicy: IfNotPresent
+        image: docker.io/kevinsqi/anathema-client:latest
+        imagePullPolicy: Always
         ports:
         - containerPort: 3000
 ---
-apiVersion: v1
 kind: Service
+apiVersion: v1
 metadata:
-  name: anathema-client-service
+  name: anathema-client-loadbalancer
+  labels:
+    app: anathema-client
 spec:
   type: LoadBalancer
   selector:
-    name: anathema-client
+    app: anathema-client
   ports:
-    - protocol: TCP
-      port: 80
+    - port: 80
       targetPort: 3000
+      protocol: TCP
+      nodePort: 31000

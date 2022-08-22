@@ -1,3 +1,9 @@
-FROM nginx:stable-alpine
+FROM node:16 as builder
 
-COPY build/ /usr/share/nginx/html
+COPY package.json ./
+RUN yarn install
+
+COPY . .
+EXPOSE 3000
+
+CMD ["yarn", "start"]
