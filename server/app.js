@@ -3,7 +3,7 @@
 const server = require("http").createServer();
 const io = require("socket.io")(server, {
   cors: {
-    origin: "http://localhost:3000", // TODO: need to change for prod deploy?
+    origin: "*", // TODO: try localhost (dev) + http://client (prod)
     methods: ["GET", "POST"],
   },
 });
