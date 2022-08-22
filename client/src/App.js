@@ -13,7 +13,10 @@ function App() {
   ] = React.useState(null);
 
   React.useEffect(() => {
-    const newSocket = io.connect("http://backend");
+    console.log("REACT_APP_SERVER_HOST", process.env.REACT_APP_SERVER_HOST);
+    const newSocket = io.connect(process.env.REACT_APP_SERVER_HOST, {
+      transports: ["websocket"],
+    });
     setSocket(newSocket);
 
     newSocket.on("lobby:update", (result) => {

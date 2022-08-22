@@ -6,4 +6,5 @@ RUN yarn install
 COPY . .
 EXPOSE 3000
 
+ENV REACT_APP_SERVER_HOST=http://backend
 CMD ["yarn", "start"]
