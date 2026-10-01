@@ -1,3 +1,3 @@
 # Anathema
 
-Tasks: https://trello.com/b/CN7Ft6am/anathema
+A multiplayer word-describing party game. Rewrite in progress.
