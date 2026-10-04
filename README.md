@@ -60,10 +60,17 @@ Browsers only allow mic access over HTTPS, so share the game through a tunnel in
 
 ```bash
 pnpm build && pnpm start   # serves everything on :3000
-pnpm tunnel                # prints a https://….trycloudflare.com URL to share
+pnpm tunnel                # in a second terminal
 ```
 
-Quick tunnels need no account. The URL changes each run. If port 3000 is taken, run both commands with `PORT=4000` (or any free port).
+The tunnel prints its public URL in a box near the top of its output (`https://<random-words>.trycloudflare.com`). Share that. Quick tunnels need no account, and the URL changes each run.
+
+If port 3000 is taken, pick another port and pass it to both the server and the tunnel:
+
+```bash
+pnpm build && PORT=4000 pnpm start
+PORT=4000 pnpm tunnel
+```
 
 ## Deploying (not set up yet)
 
