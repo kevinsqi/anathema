@@ -67,6 +67,7 @@ export async function generateWords(opts: {
 
   const res = await client.chat.completions.create({
     model: config.openaiModel,
+    reasoning_effort: config.openaiReasoningEffort,
     messages: [{ role: "user", content: prompt }],
     response_format: { type: "json_schema", json_schema: { name: "word_list", strict: true, schema: SCHEMA } },
   });
