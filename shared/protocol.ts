@@ -80,6 +80,8 @@ export interface PublicState {
 export interface SecretWord {
   word: string;
   variants: string[];
+  /** Meaningful words of a phrase, which the describer also can't say. */
+  components: string[];
 }
 
 export type ServerMessage =

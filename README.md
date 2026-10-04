@@ -5,7 +5,7 @@ A multiplayer word-describing party game. One player (the describer) gets a secr
 ## Rules
 
 - Correct guess: **+1** for the guesser, who takes the describer seat with a new word.
-- Describer says the word or a close form (`flame` for `flames`): **−1**, and they get a new word.
+- Describer says the word, a close form (`flame` for `flames`), or any meaningful part of a phrase (`tent` for `camping tent`; filler like "to" or "the" is fine): **−1**, and they get a new word. Guessers need the whole phrase.
 - Describer skips: **−0.5**.
 - If nobody guesses within **3 minutes** of a describer taking the seat, there's a short countdown and then the highest scorer becomes the describer (ties broken randomly).
 - First to **10** wins. Points to win and the reset timer can be changed in the lobby.

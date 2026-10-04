@@ -14,7 +14,7 @@ import type { Repo, WordListRow } from "./db.ts";
 import { Game, GameError, initialState, type EngineState, type WordEntry } from "./game/engine.ts";
 import { DeepgramStream, sttAvailable, type Transcript } from "./stt/deepgram.ts";
 import { wordGenAvailable } from "./words/generate.ts";
-import { buildForms, transcriptMatches, type WordForms } from "./words/matcher.ts";
+import { buildForms, componentWords, transcriptMatches, type WordForms } from "./words/matcher.ts";
 import { listLabel, type WordLists } from "./words/service.ts";
 
 /** Generate more words when a lobby's pool drops to this many. */
@@ -62,7 +62,8 @@ export class LobbyRoom {
   private sockets = new Map<string, Set<WebSocket>>();
   private stt = new Map<string, { stream: DeepgramStream; wordId: number }>();
   private sttRetryAt = new Map<string, number>();
-  private forms: { wordId: number; forms: WordForms } | null = null;
+  /** Forms that count for the current word: guessers need the full phrase, the describer can't say any part. */
+  private forms: { wordId: number; guess: WordForms; describer: WordForms } | null = null;
   private timer: NodeJS.Timeout;
   private lastSaved = "";
   private lastBroadcast = "";
@@ -245,9 +246,14 @@ export class LobbyRoom {
     const s = this.game.state;
     if (s.phase !== "playing" || s.word?.id !== wordId) return;
     if (this.forms?.wordId !== wordId) {
-      this.forms = { wordId, forms: buildForms(s.word.word, s.word.variants) };
+      this.forms = {
+        wordId,
+        guess: buildForms(s.word.word, s.word.variants),
+        describer: buildForms(s.word.word, s.word.variants, { components: true }),
+      };
     }
-    const matched = transcriptMatches(t, this.forms.forms, config.sttMinConfidence);
+    const forms = playerId === s.describerId ? this.forms.describer : this.forms.guess;
+    const matched = transcriptMatches(t, forms, config.sttMinConfidence);
     this.broadcast({ t: "caption", playerId, text: t.text, final: t.final, matched });
     if (!matched) return;
     try {
@@ -455,7 +461,7 @@ export class LobbyRoom {
 
   private sendState(playerId: string, ws: WebSocket): void {
     const s = this.game.state;
-    const word = playerId === s.describerId && s.word ? { word: s.word.word, variants: s.word.variants } : null;
+    const word = playerId === s.describerId && s.word ? { word: s.word.word, variants: s.word.variants, components: componentWords(s.word.word) } : null;
     this.send(ws, { t: "state", state: this.publicState(), you: playerId, word, serverNow: Date.now() });
   }
 

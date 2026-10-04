@@ -32,11 +32,29 @@ export interface WordForms {
   lemmas: Set<string>;
 }
 
-export function buildForms(word: string, variants: string[]): WordForms {
+/** Filler words that stay allowed even when they're part of a phrase ("Stairway to Heaven"). */
+const STOPWORDS = new Set(
+  "a an the of to in on at by for from with and or but nor is are be as it its this that my your our their me i you we he she they o de la le el los las du des der die das".split(
+    " ",
+  ),
+);
+
+/** The meaningful words of a multi-word phrase: "camping tent" → ["camping", "tent"]. */
+export function componentWords(word: string): string[] {
+  const tokens = tokenize(word);
+  if (tokens.length < 2) return [];
+  return [...new Set(tokens.filter((t) => t.length > 1 && !STOPWORDS.has(t)))];
+}
+
+/**
+ * Builds the forms that count as saying a word. Pass `components` for the
+ * describer, who also may not say any meaningful word of a phrase.
+ */
+export function buildForms(word: string, variants: string[], opts: { components?: boolean } = {}): WordForms {
   const seen = new Set<string>();
   const forms: string[][] = [];
   const lemmaSet = new Set<string>();
-  for (const raw of [word, ...variants]) {
+  for (const raw of [word, ...variants, ...(opts.components ? componentWords(word) : [])]) {
     const tokens = tokenize(raw);
     const key = tokens.join(" ");
     if (!key || seen.has(key)) continue;

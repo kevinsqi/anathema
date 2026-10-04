@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildForms, textMatches, transcriptMatches } from "./matcher.ts";
+import { buildForms, componentWords, textMatches, transcriptMatches } from "./matcher.ts";
 
 describe("textMatches", () => {
   const flames = buildForms("flames", ["flame", "flaming"]);
@@ -51,5 +51,34 @@ describe("transcriptMatches", () => {
 
   it("falls back to the text when there are no word timings", () => {
     expect(transcriptMatches({ text: "flames", words: [] }, flames, 0.5)).toBe(true);
+  });
+});
+
+describe("component words", () => {
+  it("lists the meaningful words of a phrase", () => {
+    expect(componentWords("camping tent")).toEqual(["camping", "tent"]);
+    expect(componentWords("Stairway to Heaven")).toEqual(["stairway", "heaven"]);
+    expect(componentWords("tent")).toEqual([]);
+  });
+
+  it("makes components off limits for the describer, including inflections", () => {
+    const describer = buildForms("camping tent", [], { components: true });
+    expect(textMatches("you sleep in a tent", describer)).toBe(true);
+    expect(textMatches("lots of tents", describer)).toBe(true);
+    expect(textMatches("we camped outside", describer)).toBe(true);
+    expect(textMatches("you sleep outside in it", describer)).toBe(false);
+  });
+
+  it("keeps filler words allowed", () => {
+    const describer = buildForms("Stairway to Heaven", [], { components: true });
+    expect(textMatches("go to the store", describer)).toBe(false);
+    expect(textMatches("steps up to the sky, heavenly", describer)).toBe(false);
+    expect(textMatches("heaven", describer)).toBe(true);
+  });
+
+  it("still needs the full phrase for guessers", () => {
+    const guess = buildForms("camping tent", []);
+    expect(textMatches("tent", guess)).toBe(false);
+    expect(textMatches("a camping tent", guess)).toBe(true);
   });
 });

@@ -168,7 +168,7 @@ function PregamePanel({ conn, state, you }: { conn: LobbyConnection; state: Publ
           <li>The describer gets a secret word and describes it without saying it.</li>
           <li>First to say the word gets +1 and becomes the describer.</li>
           <li>
-            Describer says the word (or a close form): −{fmtScore(state.settings.foulPenalty)}. Skipping: −
+            Describer says the word, a close form, or any part of a phrase (“tent” for “camping tent”): −{fmtScore(state.settings.foulPenalty)}. Skipping: −
             {fmtScore(state.settings.skipPenalty)}.
           </li>
           <li>
@@ -337,10 +337,11 @@ function DescriberView({ conn, state, you }: { conn: LobbyConnection; state: Pub
   const { word } = conn;
   const guessers = state.players.filter((p) => p.id !== you);
   if (!word) return <div className="big-word muted">{state.waitingForWord ? "Generating more words…" : "…"}</div>;
+  const offLimits = [...new Set([...word.components, ...word.variants.map((v) => v.toLowerCase())])];
   return (
     <>
       <div className="big-word">{word.word}</div>
-      {word.variants.length > 0 && <div className="muted small center">Also off-limits: {word.variants.join(", ")}</div>}
+      {offLimits.length > 0 && <div className="muted small center">Also off limits: {offLimits.join(", ")}</div>}
       <div className="stack">
         <span className="muted small">Someone got it? Tap who:</span>
         <div className="row wrap">
